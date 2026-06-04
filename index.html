@@ -579,20 +579,38 @@ function dfs_xy_conv(v1, v2) {
 }
 
 // --- [수정] 날씨 정보 불러오기 (기상청 단기예보 API 활용) ---
-async function fetchWeather() {
+async function fetchWeather(btn) {
   if (!navigator.geolocation) {
     alert("위치 정보를 지원하지 않는 브라우저입니다.");
     return;
   }
 
-  const btn = event.target;
-  const originalText = btn.innerText;
+  const originalText = btn ? btn.innerText : "📍 위치 파악 중...";
   btn.innerText = "📍 위치 파악 중...";
   btn.disabled = true;
 
   navigator.geolocation.getCurrentPosition(async (position) => {
     const lat = position.coords.latitude;
     const lon = position.coords.longitude;
+
+    // --- [추가] 역 지오코딩으로 주소 가져오기 (OpenStreetMap Nominatim API) ---
+    let addressName = "";
+    try {
+      const addrRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&addressdetails=1`, {
+        headers: { 'Accept-Language': 'ko' }
+      });
+      const addrData = await addrRes.json();
+      if (addrData && addrData.address) {
+        const city = addrData.address.city || addrData.address.town || addrData.address.village || "";
+        const county = addrData.address.county || "";
+        const district = addrData.address.borough || addrData.address.suburb || addrData.address.district || "";
+        addressName = `${city} ${county} ${district}`.trim();
+        
+        // 국소명 필드가 비어있다면 주소를 자동으로 채워줌
+        const locInput = document.getElementById("location");
+        if(!locInput.value) locInput.value = addressName;
+      }
+    } catch (e) { console.error("주소 획득 실패:", e); }
 
     // 기상청 격자 좌표(nx, ny) 변환
     const grid = dfs_xy_conv(lat, lon);
@@ -630,20 +648,35 @@ async function fetchWeather() {
       const items = data.response.body.items.item;
       const t1h = items.find(i => i.category === "T1H").obsrValue; // 실황 기온
       const wsd = items.find(i => i.category === "WSD")?.obsrValue || 0; // 풍속 (m/s)
+      const reh = items.find(i => i.category === "REH")?.obsrValue || 50; // 습도 (%)
       
       const T = parseFloat(t1h);
-      const V = parseFloat(wsd) * 3.6; // m/s 단위를 km/h로 변환
+      const V = parseFloat(wsd); // m/s
+      const RH = parseFloat(reh);
       let feelTemp = T;
       
-      // 기상청 체감온도 공식 (동절기 기준: 기온 10도 이하, 풍속 4.8km/h 이상일 때)
-      if (T <= 10 && V >= 4.8) {
-          feelTemp = 13.12 + 0.6215 * T - 11.37 * Math.pow(V, 0.16) + 0.3965 * T * Math.pow(V, 0.16);
+      // 기상청 체감온도 공식 적용
+      const month = now.getMonth() + 1;
+      
+      if (month >= 5 && month <= 9) {
+        // 하절기 체감온도 (간이 열지수 공식)
+        feelTemp = -8.784695 + 1.61139411 * T + 2.338549 * RH + (-0.148235) * T * RH + 
+                   (-0.000221) * T * T + (-0.01642) * RH * RH + 0.00221173 * T * T * RH + 
+                   0.00072546 * T * RH * RH + (-0.00000358) * T * T * RH * RH;
+        // 열지수가 기온보다 낮게 계산되는 경우 방지
+        if (feelTemp < T) feelTemp = T;
+      } else {
+        // 동절기 체감온도 (기온 10도 이하, 풍속 1.3m/s 이상일 때)
+        const V_kmh = V * 3.6;
+        if (T <= 10 && V_kmh >= 4.8) {
+          feelTemp = 13.12 + 0.6215 * T - 11.37 * Math.pow(V_kmh, 0.16) + 0.3965 * T * Math.pow(V_kmh, 0.16);
+        }
       }
 
       document.getElementById("real_temperature").value = T.toFixed(1) + "°C";
       document.getElementById("fake_temperature").value = feelTemp.toFixed(1) + "°C";
       
-      alert(`기상청 정보를 성공적으로 불러왔습니다.\n(기온: ${T.toFixed(1)}도 / 체감: ${feelTemp.toFixed(1)}도)`);
+      alert(`기상청 정보를 성공적으로 불러왔습니다.\n📍 위치: ${addressName || "확인 불가"}\n🧭 좌표: 위도 ${lat.toFixed(4)}, 경도 ${lon.toFixed(4)}\n🌡 기온: ${T.toFixed(1)}°C / 습도: ${RH}% / 체감: ${feelTemp.toFixed(1)}°C`);
       generateImage();
     } catch (error) {
       console.error(error);
