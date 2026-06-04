@@ -601,10 +601,27 @@ async function fetchWeather(btn) {
       });
       const addrData = await addrRes.json();
       if (addrData && addrData.address) {
-        const city = addrData.address.city || addrData.address.town || addrData.address.village || "";
-        const county = addrData.address.county || "";
-        const district = addrData.address.borough || addrData.address.suburb || addrData.address.district || "";
-        addressName = `${city} ${county} ${district}`.trim();
+        const city =
+  addrData.address.city ||
+  addrData.address.town ||
+  addrData.address.village ||
+  "";
+
+const gu =
+  addrData.address.borough ||
+  addrData.address.city_district ||
+  addrData.address.county ||
+  "";
+
+const dong =
+  addrData.address.suburb ||
+  addrData.address.neighbourhood ||
+  addrData.address.quarter ||
+  "";
+
+addressName = `${city} ${gu} ${dong}`
+  .replace(/\s+/g, " ")
+  .trim();
         
         // 국소명 필드가 비어있다면 주소를 자동으로 채워줌
         const locInput = document.getElementById("location");
