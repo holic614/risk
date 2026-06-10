@@ -1,4 +1,4 @@
-const CACHE_NAME = 'risk-assessment-v8';
+const CACHE_NAME = 'risk-assessment-v9';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
