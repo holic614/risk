@@ -1,8 +1,8 @@
 {
   "name": "현장 위험성 평가표",
   "short_name": "위험성평가",
-  "start_url": "/risk2/",
-  "scope": "/risk2/",
+  "start_url": "/risk/",
+  "scope": "/risk/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#007bff",
