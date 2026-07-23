@@ -1110,7 +1110,7 @@ async function fetchWeather(btn) {
       try { data = JSON.parse(weatherText); }
       catch (e) {
         console.error("[날씨] JSON 파싱 실패:", e.message);
-        alert("날씨 데이터 파싱 실패. F12 콘솔을 확인해주세요.");
+        alert("날씨 기상청 서버 불량 발생. 복구시까지 수동으로 온도를 등록 해주세요.");
         return;
       }
 
@@ -1226,7 +1226,7 @@ async function fetchWeather(btn) {
 
     } catch (error) {
       console.error("[날씨 데이터 수급 최종 실패]:", error);
-      alert("기상 데이터 수급에 실패했습니다.\nF12 > 콘솔 탭에서 오류 내용을 확인해 주세요.");
+      alert("날씨 기상청 서버 불량 발생. 복구시까지 수동으로 온도를 등록 해주세요");
     } finally {
       if (btn) { btn.innerText = originalText; btn.disabled = false; }
     }
